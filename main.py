@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy
+import pandas
 import scipy
 import scipy.integrate
 
@@ -7,6 +8,8 @@ import scipy.integrate
 delta = 2.703e-5 # Natural Birth Rate (unrelated to disease)
 mu = 2.403e-5 # Natural Death Rate (unrelated to disease)    beta = 1 # Rate of Exposure
 sigma = 0.2 # Average Incubation Period [days^-1]
+beds = 1739 # Number of hospital beds available
+icub = 100 # Number of ICU beds available
 
 def main():
 
@@ -14,7 +17,7 @@ def main():
     beta0 = 0.175 # Rate of Exposure
     N0 = 3.57e6 # Total Population of CT [persons]
     gamma0 = 0.07 # Rate of Removal [days^-1]
-    cfr0 = 0.025 # Case Fatality Rate [2-3%]
+    cfr0 = 0.022 # Case Fatality Rate [1.4% (NY) - 3%]
     R0 = (beta0*sigma)/((mu+gamma0)*(mu+sigma)) # Basic Reproduction Number
 
     c0 = 41762 # Total Number of Cases [persons]
@@ -36,6 +39,8 @@ def main():
     # SOLVE ODE
     solution = scipy.integrate.solve_ivp(rhs, tspan, init, t_eval=teval)
     solution = numpy.c_[teval, numpy.transpose(solution['y'])]
+    # TODO: calculate R0 here
+    # solution['R0'] =
     numpy.savetxt('solution.csv', solution, header='Time, Population, Cases, Dead, Susceptible, Exposed, Infected, Removed, beta, gamma, CFR')
 
     fig = plt.figure()
@@ -53,6 +58,11 @@ def main():
     plt.legend()
 
     plt.show()
+
+def estimate():
+    data = pandas.read_csv('nytimes.csv')
+    ct_data = data[(data.state == "Connecticut")] # Total number of cases, and number of deaths, from 1/21
+    print(ct_data)
 
 def rhs(dt, init):
 
@@ -86,4 +96,5 @@ def rhs(dt, init):
     return [Ndot, cdot, ddot, sdot, edot, idot, rdot, betadot, gammadot, cfrdot]
 
 if __name__ == "__main__":
-    main()
+    # main()
+    estimate()

@@ -15,4 +15,5 @@ Modelling the control of SARS-CoV-2, COVID-19, the novel coronavirus, "rona."
 * [Death Rate](https://www.cdc.gov/nchs/data/nvsr/nvsr68/nvsr68_09-508.pdf)
 * [Life Expectancy](https://www.cdc.gov/nchs/data-visualization/life-expectancy/index.html)
 * [Recovery Period](https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf)
+* [NYT State-Level Data](https://www.nytimes.com/interactive/2020/us/coronavirus-us-cases.html)
 * [World COVID Tracker](https://www.worldometers.info/coronavirus/country/us/)
