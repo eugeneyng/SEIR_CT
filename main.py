@@ -5,6 +5,7 @@ import os
 import pandas
 import scipy
 import scipy.integrate
+import sympy
 
 # GLOBAL CONSTANTS
 delta = 2.703e-5 # Natural Birth Rate (unrelated to disease)
@@ -61,6 +62,9 @@ def main():
 
     plt.show()
 
+def control():
+    pass
+
 def estimate():
     data = pandas.read_csv('nytimes.csv')
     ct_data = data[(data.state == "Connecticut")] # Total number of cases, and number of deaths, from 1/21
@@ -97,6 +101,19 @@ def rhs(dt, init):
 
     return [Ndot, cdot, ddot, sdot, edot, idot, rdot, betadot, gammadot, cfrdot]
 
+def linearize():
+    s, e, i, r = sympy.symbols('s e i r')
+    beta, sigma, gamma, delta, mu = sympy.symbols('beta sigma gamma delta mu')
+
+    eq1 = sympy.Eq(mu - beta*sigma*i - mu*sigma, 0)
+    eq2 = sympy.Eq(beta*sigma*i - mu*e - sigma*e, 0)
+    eq3 = sympy.Eq(sigma*e - gamma*i - mu*i, 0)
+    eq4 = sympy.Eq(gamma*i - mu*r, 0)
+
+    solution = sympy.solve([eq1, eq2, eq3, eq4], (s, e, i, r))
+    print(solution)
+
 if __name__ == "__main__":
     # main()
-    estimate()
+    # estimate()
+    linearize()
