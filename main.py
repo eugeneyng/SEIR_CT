@@ -75,6 +75,7 @@ def dxdt(x, t=0):
                         0.175 * numpy.exp( (-0.175/0.07) * x[0] ) - (0.07 * x[1]) ])
 
 def phase():
+    # see https://scipy-cookbook.readthedocs.io/items/LoktaVolterraTutorial.html
     r = numpy.linspace(0, 1, 20)
     i = numpy.linspace(0, 1, 20)
     R, I = numpy.meshgrid(r,i)
