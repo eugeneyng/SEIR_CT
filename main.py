@@ -70,6 +70,22 @@ def estimate():
     ct_data = data[(data.state == "Connecticut")] # Total number of cases, and number of deaths, from 1/21
     print(ct_data)
 
+def dxdt(x, t=0):
+    return numpy.array([ 0.07 * x[1],
+                        0.175 * numpy.exp( (-0.175/0.07) * x[0] ) - (0.07 * x[1]) ])
+
+def phase():
+    r = numpy.linspace(0, 1, 20)
+    i = numpy.linspace(0, 1, 20)
+    R, I = numpy.meshgrid(r,i)
+    dR, dI = dxdt([R,I])
+    M = (numpy.hypot(dR, dI))
+    M [ M == 0 ] = 1.
+    dR /= M
+    dI /= M
+    Q = plt.quiver(R, I, dR, dI, M, pivot='mid')
+    plt.show()
+
 def rhs(dt, init):
 
     # Unpack Arguments
@@ -101,19 +117,7 @@ def rhs(dt, init):
 
     return [Ndot, cdot, ddot, sdot, edot, idot, rdot, betadot, gammadot, cfrdot]
 
-def linearize():
-    s, e, i, r = sympy.symbols('s e i r')
-    beta, sigma, gamma, delta, mu = sympy.symbols('beta sigma gamma delta mu')
-
-    eq1 = sympy.Eq(mu - beta*sigma*i - mu*sigma, 0)
-    eq2 = sympy.Eq(beta*sigma*i - mu*e - sigma*e, 0)
-    eq3 = sympy.Eq(sigma*e - gamma*i - mu*i, 0)
-    eq4 = sympy.Eq(gamma*i - mu*r, 0)
-
-    solution = sympy.solve([eq1, eq2, eq3, eq4], (s, e, i, r))
-    print(solution)
-
 if __name__ == "__main__":
-    main()
+    # main()
     # estimate()
-    # linearize()
+    phase()
