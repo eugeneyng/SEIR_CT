@@ -9,7 +9,7 @@ import sympy
 
 # GLOBAL CONSTANTS
 delta = 2.703e-5 # Natural Birth Rate (unrelated to disease)
-mu = 2.403e-5 # Natural Death Rate (unrelated to disease)    beta = 1 # Rate of Exposure
+mu = 2.403e-5 # Natural Death Rate (unrelated to disease)
 sigma = 0.2 # Average Incubation Period [days^-1]
 beds = 1739 # Number of hospital beds available
 icub = 100 # Number of ICU beds available
@@ -55,7 +55,7 @@ def main():
     plt.legend()
 
     fig.add_subplot(1,2,2)
-    # plt.plot(teval, solution[:,1], label="Population")
+    plt.plot(teval, solution[:,1], label="Population")
     plt.plot(teval, solution[:,2], label="Cases")
     plt.plot(teval, solution[:,3], label="Dead")
     plt.legend()
@@ -114,6 +114,6 @@ def linearize():
     print(solution)
 
 if __name__ == "__main__":
-    # main()
+    main()
     # estimate()
-    linearize()
+    # linearize()
