@@ -16,16 +16,21 @@ icub = 100 # Number of ICU beds available
 
 def main():
 
+    nyt = pandas.read_csv('data/nytimes.csv')
+    nytct = nyt[(nyt.state == "Connecticut")]
+    nytct['date'] = pandas.to_datetime(nytct['date'])
+    nytct = nytct.reset_index()
+
     # INITIAL CONDITIONS
     beta0 = 0.175 # Rate of Exposure
     N0 = 3.57e6 # Total Population of CT [persons]
-    gamma0 = 0.07 # Rate of Removal [days^-1]
+    gamma0 = 0.13 # Rate of Removal [days^-1]
     cfr0 = 0.022 # Case Fatality Rate [1.4% (NY) - 3%]
     R0 = (beta0*sigma)/((mu+gamma0)*(mu+sigma)) # Basic Reproduction Number
 
-    c0 = 41762 # Total Number of Cases [persons]
-    d0 = 3868  # Number of Deaths [persons]
-    i0 = 30383/N0 # Active Infected []
+    c0 = 1000 # Total Number of Cases [persons]
+    d0 = 0  # Number of Deaths [persons]
+    i0 = 1000/N0 # Active Infected []
     r0 = (c0-d0-i0)/N0 # Recovered []
     e0 = (R0*i0)/N0  # Exposed []
     s0 = (N0-c0-d0-r0)/N0 # Susceptible []
@@ -55,37 +60,17 @@ def main():
     plt.legend()
 
     fig.add_subplot(1,2,2)
-    plt.plot(teval, solution[:,1], label="Population")
+    # plt.plot(teval, solution[:,1], label="Population")
+    plt.plot(nytct.index, nytct['cases'], label='Actual Cases')
     plt.plot(teval, solution[:,2], label="Cases")
-    plt.plot(teval, solution[:,3], label="Dead")
+    # plt.plot(teval, solution[:,3], label="Dead")
+    plt.plot(teval, solution[:,7]*N0, label="Removed")
     plt.legend()
 
     plt.show()
 
 def control():
     pass
-
-def estimate():
-    data = pandas.read_csv('nytimes.csv')
-    ct_data = data[(data.state == "Connecticut")] # Total number of cases, and number of deaths, from 1/21
-    print(ct_data)
-
-def dxdt(x, t=0):
-    return numpy.array([ 0.07 * x[1],
-                        0.175 * numpy.exp( (-0.175/0.07) * x[0] ) - (0.07 * x[1]) ])
-
-def phase():
-    # see https://scipy-cookbook.readthedocs.io/items/LoktaVolterraTutorial.html
-    r = numpy.linspace(0, 1, 20)
-    i = numpy.linspace(0, 1, 20)
-    R, I = numpy.meshgrid(r,i)
-    dR, dI = dxdt([R,I])
-    M = (numpy.hypot(dR, dI))
-    M [ M == 0 ] = 1.
-    dR /= M
-    dI /= M
-    Q = plt.quiver(R, I, dR, dI, M, pivot='mid')
-    plt.show()
 
 def rhs(dt, init):
 
@@ -119,6 +104,4 @@ def rhs(dt, init):
     return [Ndot, cdot, ddot, sdot, edot, idot, rdot, betadot, gammadot, cfrdot]
 
 if __name__ == "__main__":
-    # main()
-    # estimate()
-    phase()
+    main()
