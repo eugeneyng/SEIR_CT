@@ -30,10 +30,10 @@ def main():
     nytct.index += 0
 
     # INITIAL CONDITIONS
-    i0 = 360/N    # Active Infected []
-    e0 = 250/N      # Exposed []
-    r0 = 400/N      # Recovered []
-    s0 = (N-r0-e0-i0)/N # Susceptible []
+    s0 = (N-360-250-400)/N  # Susceptible []
+    e0 = 250/N              # Exposed []
+    i0 = 360/N              # Active Infected []
+    r0 = 400/N              # Recovered []
 
     # ODE VARIABLES
     tf = 365
