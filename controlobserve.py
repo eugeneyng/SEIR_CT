@@ -35,9 +35,9 @@ def controlobserve():
     O_dfe = control.obsv(J_dfe, L_dfe)
 
     rankC_dfe = numpy.linalg.matrix_rank(C_dfe)
-    print(rankC_dfe)
+    print(C_dfe)
     rankO_dfe = numpy.linalg.matrix_rank(O_dfe)
-    print(rankO_dfe)
+    print(O_dfe)
 
     J_end = numpy.matrix([
             [0, 0,      -gamma, 0],
@@ -61,9 +61,9 @@ def controlobserve():
     O_end = control.obsv(J_end, L_end)
 
     rankC_end = numpy.linalg.matrix_rank(C_end)
-    print(rankC_end)
+    print(C_end)
     rankO_end = numpy.linalg.matrix_rank(O_end)
-    print(rankO_end)
+    print(O_end)
 
 
 if __name__ == "__main__":
