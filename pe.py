@@ -8,6 +8,8 @@ import pandas
 import scipy
 import scipy.integrate
 import sympy
+pandas.set_option('display.max_rows', None)
+pandas.set_option('display.max_columns', None)
 
 # GLOBAL CONSTANTS
 beta = 0.175 # Rate of Exposure
@@ -29,6 +31,7 @@ def estimate():
     nytct['date'] = pandas.to_datetime(nytct['date'])
     nytct = nytct.reset_index()
     nytct.index += 0
+    # print(nytct)
 
     if os.path.isfile('data/jhuct.pkl'):
         # print("Reading saved JHU data")
@@ -42,12 +45,15 @@ def estimate():
             jhuct = jhuct.append(jhu[(jhu.Province_State == "Connecticut")])
         jhuct.to_pickle('data/jhuct.pkl')
     jhuct['date'] = pandas.to_datetime(jhuct['Last_Update'])
+    print(jhuct)
 
-    # ax1 = plt.gca()
-    # jhuct.plot(x='date', y='Confirmed', kind='line', ax=ax1, label='JHU Confirmed')
-    # jhuct.plot(x='date', y='Recovered', kind='line', ax=ax1, label='JHU Recovered')
-    # nytct.plot(x='date', y='cases', kind='line', ax=ax1, label='NYT Confirmed')
-    # plt.show()
+    ax1 = plt.gca()
+    jhuct.plot(x='date', y='Active', kind='line', ax=ax1, label='JHU Active')
+    jhuct.plot(x='date', y='Confirmed', kind='line', ax=ax1, label='JHU Confirmed')
+    jhuct.plot(x='date', y='Deaths', kind='line', ax=ax1, label='JHU Deaths')
+    jhuct.plot(x='date', y='People_Hospitalized', kind='line', ax=ax1, label='JHU Hospitalized')
+    jhuct.plot(x='date', y='Recovered', kind='line', ax=ax1, label='JHU Recovered')
+    plt.show()
 
     # INITIAL CONDITIONS
     s0 = (N-360-250-400)/N  # Susceptible []
@@ -71,14 +77,17 @@ def estimate():
     # solution['R0'] =
     numpy.savetxt('solution.csv', solution, header='Time, Susceptible, Exposed, Infected, Removed')
 
-    fig = plt.figure()
+    # fig = plt.figure()
     # fig.add_subplot(1,2,1)
-    plt.plot(teval, solution[:,1], label='Susceptible')
-    plt.plot(teval, solution[:,2], label='Exposed')
-    plt.plot(teval, solution[:,3], label='Infected')
-    plt.plot(teval, solution[:,4], label='Removed')
-    plt.plot(nytct.index, nytct['cases']/N, label='NYT Infected')
-    plt.legend()
+    # plt.xlabel("Days")
+    # plt.ylabel("Portion of Population in Compartment")
+    # plt.grid(True)
+    # plt.plot(teval, solution[:,1], label='Susceptible')
+    # plt.plot(teval, solution[:,2], label='Exposed')
+    # plt.plot(teval, solution[:,3], label='Infected')
+    # plt.plot(teval, solution[:,4], label='Removed')
+    # plt.plot(nytct.index, nytct['cases']/N, label='NYT Infected')
+    # plt.legend()
 
     # fig.add_subplot(1,2,2)
     # plt.legend()
