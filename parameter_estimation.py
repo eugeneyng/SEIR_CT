@@ -45,7 +45,7 @@ def estimate():
             jhuct = jhuct.append(jhu[(jhu.Province_State == "Connecticut")])
         jhuct.to_pickle('data/jhuct.pkl')
     jhuct['date'] = pandas.to_datetime(jhuct['Last_Update'])
-    print(jhuct)
+    # print(jhuct)
 
     ax1 = plt.gca()
     jhuct.plot(x='date', y='Active', kind='line', ax=ax1, label='JHU Active')
