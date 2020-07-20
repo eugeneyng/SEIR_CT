@@ -18,7 +18,7 @@ gamma = 0.07 # Rate of Removal [days^-1]
 mu = 2.403e-5 # Natural Death Rate (unrelated to disease)
 sigma = 0.2 # Average Incubation Period [days^-1]
 
-N = 3.57e6 # Total Population of CT [persons]
+N = 3565287 # Total Population of CT [persons]
 cfr = 0.022 # Case Fatality Rate [1.4% (NY) - 3%]
 R = (beta*sigma)/((mu+gamma)*(mu+sigma)) # Basic Reproduction Number
 
@@ -31,29 +31,28 @@ def estimate():
     nytct['date'] = pandas.to_datetime(nytct['date'])
     nytct = nytct.reset_index()
     nytct.index += 0
-    # print(nytct)
 
-    if os.path.isfile('data/jhuct.pkl'):
-        # print("Reading saved JHU data")
-        jhuct = pandas.read_pickle('data/jhuct.pkl')
-    else:
-        filelist = os.listdir('data/csse')
-        filelist.sort()
-        jhuct = pandas.DataFrame()
-        for file in filelist:
-            jhu = pandas.read_csv('data/csse/' + file)
-            jhuct = jhuct.append(jhu[(jhu.Province_State == "Connecticut")])
-        jhuct.to_pickle('data/jhuct.pkl')
-    jhuct['date'] = pandas.to_datetime(jhuct['Last_Update'])
-    # print(jhuct)
-
-    ax1 = plt.gca()
-    jhuct.plot(x='date', y='Active', kind='line', ax=ax1, label='JHU Active')
-    jhuct.plot(x='date', y='Confirmed', kind='line', ax=ax1, label='JHU Confirmed')
-    jhuct.plot(x='date', y='Deaths', kind='line', ax=ax1, label='JHU Deaths')
-    jhuct.plot(x='date', y='People_Hospitalized', kind='line', ax=ax1, label='JHU Hospitalized')
-    jhuct.plot(x='date', y='Recovered', kind='line', ax=ax1, label='JHU Recovered')
-    plt.show()
+    # if os.path.isfile('data/jhuct.pkl'):
+    #     # print("Reading saved JHU data")
+    #     jhuct = pandas.read_pickle('data/jhuct.pkl')
+    # else:
+    #     filelist = os.listdir('data/csse')
+    #     filelist.sort()
+    #     jhuct = pandas.DataFrame()
+    #     for file in filelist:
+    #         jhu = pandas.read_csv('data/csse/' + file)
+    #         jhuct = jhuct.append(jhu[(jhu.Province_State == "Connecticut")])
+    #     jhuct.to_pickle('data/jhuct.pkl')
+    # jhuct['date'] = pandas.to_datetime(jhuct['Last_Update'])
+    # # print(jhuct)
+    #
+    # ax1 = plt.gca()
+    # jhuct.plot(x='date', y='Active', kind='line', ax=ax1, label='JHU Active')
+    # jhuct.plot(x='date', y='Confirmed', kind='line', ax=ax1, label='JHU Confirmed')
+    # jhuct.plot(x='date', y='Deaths', kind='line', ax=ax1, label='JHU Deaths')
+    # jhuct.plot(x='date', y='People_Hospitalized', kind='line', ax=ax1, label='JHU Hospitalized')
+    # jhuct.plot(x='date', y='Recovered', kind='line', ax=ax1, label='JHU Recovered')
+    # plt.show()
 
     # INITIAL CONDITIONS
     s0 = (N-360-250-400)/N  # Susceptible []
@@ -77,21 +76,16 @@ def estimate():
     # solution['R0'] =
     numpy.savetxt('solution.csv', solution, header='Time, Susceptible, Exposed, Infected, Removed')
 
-    # fig = plt.figure()
-    # fig.add_subplot(1,2,1)
-    # plt.xlabel("Days")
-    # plt.ylabel("Portion of Population in Compartment")
-    # plt.grid(True)
-    # plt.plot(teval, solution[:,1], label='Susceptible')
-    # plt.plot(teval, solution[:,2], label='Exposed')
-    # plt.plot(teval, solution[:,3], label='Infected')
-    # plt.plot(teval, solution[:,4], label='Removed')
-    # plt.plot(nytct.index, nytct['cases']/N, label='NYT Infected')
-    # plt.legend()
-
-    # fig.add_subplot(1,2,2)
-    # plt.legend()
-
+    fig = plt.figure()
+    plt.xlabel("Days")
+    plt.ylabel("Portion of Population in Compartment")
+    plt.grid(True)
+    plt.plot(teval, solution[:,1], label='Susceptible')
+    plt.plot(teval, solution[:,2], label='Exposed')
+    plt.plot(teval, solution[:,3], label='Infected')
+    plt.plot(teval, solution[:,4], label='Removed')
+    plt.plot(nytct.index, nytct['cases']/N, label='NYT Infected')
+    plt.legend()
     plt.show()
 
 def rhs(dt, init):
