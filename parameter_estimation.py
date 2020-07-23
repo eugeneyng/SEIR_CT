@@ -1,14 +1,12 @@
 # Parameter Estimation
 
-import glob
 import matplotlib.pyplot as plt
 import numpy
 import os
 import pandas
 import scipy
 import scipy.integrate
-import sympy
-pandas.set_option('display.max_rows', None)
+# pandas.set_option('display.max_rows', None)
 # pandas.set_option('display.max_columns', None)
 
 # GLOBAL CONSTANTS
@@ -25,6 +23,7 @@ beds = 8798 # Number of hospital beds available
 icub = 674 # Number of ICU beds available
 
 def estimate():
+
     nyt = pandas.read_csv('data/nytimes.csv')
     nytct = nyt[(nyt.state == "Connecticut")].copy()
     nytct['date'] = pandas.to_datetime(nytct['date'])
@@ -33,62 +32,29 @@ def estimate():
     nytct = nytct.reset_index()
     nytct.index += 0
 
-    if os.path.isfile('data/jhuct.pkl'):
-        # print("Reading saved JHU data")
-        jhuct = pandas.read_pickle('data/jhuct.pkl')
-    else:
-        filelist = os.listdir('data/csse')
-        filelist.sort()
-        jhuct = pandas.DataFrame()
-        for file in filelist:
-            jhu = pandas.read_csv('data/csse/' + file)
-            jhuct = jhuct.append(jhu[(jhu.Province_State == "Connecticut")])
-        jhuct.to_pickle('data/jhuct.pkl')
-    jhuct['date'] = pandas.to_datetime(jhuct['Last_Update'])
+    # if os.path.isfile('data/jhuct.pkl'):
+    #     # print("Reading saved JHU data")
+    #     jhuct = pandas.read_pickle('data/jhuct.pkl')
+    # else:
+    #     filelist = os.listdir('data/csse')
+    #     filelist.sort()
+    #     jhuct = pandas.DataFrame()
+    #     for file in filelist:
+    #         jhu = pandas.read_csv('data/csse/' + file)
+    #         jhuct = jhuct.append(jhu[(jhu.Province_State == "Connecticut")])
+    #     jhuct.to_pickle('data/jhuct.pkl')
+    # jhuct['date'] = pandas.to_datetime(jhuct['Last_Update'])
 
     # ODE VARIABLES
-    tf = 360
+    tf = 30
     dt = 1
     tspan = [0, tf]
     teval = numpy.arange(0, tf, dt)
+    targs = [tf, dt, tspan, teval]
 
-    # SEARCH FOR SMALLEST ERROR IN SIMULATIONS
-    base_error = 10
-    for beta in ranger(0.1, 0.5, 0.01):
-        for e in ranger(0, 1000, 50):
-            for i in ranger(0, 1000, 50):
-
-                # INITIAL CONDITIONS
-                e0 = e/N        # Exposed
-                i0 = i/N        # Active Infected
-                r0 = 0/N        # Recovered
-                s0 = 1-e0-i0-r0 # Susceptible
-
-                # INIT
-                init = [s0, e0, i0, r0, beta]
-
-                # SOLVE ODE
-                solution = scipy.integrate.solve_ivp(rhs, tspan, init, t_eval=teval)
-                solution = numpy.c_[numpy.transpose(solution['y'])]
-                seir = pandas.DataFrame(data=solution)
-                seir['date'] = pandas.date_range(start='3/8/2020', periods=len(seir), freq='D')
-                seir.columns = ['susceptible', 'exposed', 'infected', 'recovered', 'beta', 'date']
-
-                error = (nytct['cases']/N).head(tf).subtract(seir['infected']).abs().sum()
-                if (error < base_error):
-                    base_error = error
-                    betasearch = beta
-                    esearch = e
-                    isearch = i
-
-    # Now that we have refined, print and show
-    print(betasearch)
-    print(esearch)
-    print(isearch)
-
-    # esearch = 150
-    # isearch = 0
-    # betasearch = 0.45
+    # (betasearch, esearch, isearch) = search(targs, nytct)
+    (betasearch, esearch, isearch) = (0.42, 100, 50)
+    print(betasearch, esearch, isearch)
 
     # INITIAL CONDITIONS
     e0 = esearch/N  # Exposed
@@ -107,16 +73,17 @@ def estimate():
     seir.columns = ['susceptible', 'exposed', 'infected', 'recovered', 'beta', 'date']
 
     fig = plt.figure()
-    plt.xlabel("Days")
+    plt.xlabel("Date")
     plt.ylabel("Portion of Population in Compartment")
     plt.grid(True)
-    plt.plot(seir['date'], seir['susceptible'], label='Susceptible')
-    plt.plot(seir['date'], seir['exposed'], label='Exposed')
-    plt.plot(seir['date'], seir['infected'], label='Simulated Infected')
-    plt.plot(seir['date'], seir['recovered'], label='Recovered')
-    plt.plot(nytct['date'].head(tf), nytct['cases'].head(tf)/N, label='NYT Infected')
+    # plt.plot(seir['date'], seir['susceptible'], label='Susceptible')
+    # plt.plot(seir['date'], seir['exposed'], label='Exposed')
+    plt.plot(seir['date'], seir['infected'], label=r'Proportion of Infected, Simulated with $\beta$=0.42')
+    # plt.plot(seir['date'], seir['recovered'], label='Recovered')
+    plt.scatter(nytct['date'].head(tf), nytct['cases'].head(tf)/N, label='Proportion of Infected, per NYT/JHU')
     plt.gcf().autofmt_xdate()
     plt.legend()
+    plt.tight_layout()
     plt.show()
 
 def rhs(dt, init):
@@ -136,10 +103,43 @@ def rhs(dt, init):
 
     return [sdot, edot, idot, rdot, 0]
 
-def ranger(start, end, step):
-    while start <= end:
-        yield start
-        start += step
+def search(targs, comparison_data):
+    tf = targs[0]
+    dt = targs[1]
+    tspan = targs[2]
+    teval = targs[3]
+
+    # SEARCH FOR SMALLEST ERROR IN SIMULATIONS
+    base_error = 10
+    for beta in numpy.arange(0.1, 0.6, 0.01):
+        for e in numpy.arange(0, 2000, 50):
+            for i in numpy.arange(0, 2000, 50):
+                print(beta, e, i)
+                # INITIAL CONDITIONS
+                e0 = e/N        # Exposed
+                i0 = i/N        # Active Infected
+                r0 = 0/N        # Recovered
+                s0 = 1-e0-i0-r0 # Susceptible
+
+                # INIT
+                init = [s0, e0, i0, r0, beta]
+
+                # SOLVE ODE
+                solution = scipy.integrate.solve_ivp(rhs, tspan, init, t_eval=teval)
+                solution = numpy.c_[numpy.transpose(solution['y'])]
+                seir = pandas.DataFrame(data=solution)
+                seir['date'] = pandas.date_range(start='3/8/2020', periods=len(seir), freq='D')
+                seir.columns = ['susceptible', 'exposed', 'infected', 'recovered', 'beta', 'date']
+
+                error = (((comparison_data['cases']/N).head(tf).subtract(seir['infected']))**2).sum()
+                if (error < base_error):
+                    print("New Minimum Error")
+                    base_error = error
+                    betasearch = beta
+                    esearch = e
+                    isearch = i
+
+    return(betasearch, esearch, isearch)
 
 if __name__ == "__main__":
     estimate()

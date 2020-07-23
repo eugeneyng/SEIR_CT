@@ -36,11 +36,11 @@ def main():
     m.time = numpy.arange(0, tf, dt)
 
     # Define variables and initial value for GEKKO Model
-    m.beta = m.MV(value=0.175, lb=0, ub=1)
-    m.s = m.SV(value=(N-250-360-400)/N, lb=0, ub=1)
-    m.e = m.CV(value=250/N, lb=0, ub=1)
-    m.i = m.CV(value=360/N, lb=0, ub=1)
-    m.r = m.SV(value=400/N, lb=0, ub=1)
+    m.beta = m.MV(value=0.42, lb=0, ub=1)
+    m.s = m.SV(value=(N-100-50-0)/N, lb=0, ub=1)
+    m.e = m.CV(value=100/N, lb=0, ub=1)
+    m.i = m.CV(value=50/N, lb=0, ub=1)
+    m.r = m.SV(value=0/N, lb=0, ub=1)
 
     m.Equation( m.s.dt() == delta - (m.beta*m.s*m.i) - (mu*m.s) )
     m.Equation( m.e.dt() == (m.beta*m.s*m.i) - (sigma*m.e) - (mu*m.e) )
@@ -62,18 +62,20 @@ def main():
     m.s.FSTATUS = 1
     m.e.STATUS = 1
     m.e.FSTATUS = 0
-    m.e.SPHI = 0.05
-    m.e.SPLO = 0
+    # TODO: Setpoint can't be changed too quickly.
+    # TODO: Discrete optimization
+    m.e.SPHI = 0.1
+    m.e.SPLO = 0.05
     m.i.STATUS = 1
     m.i.FSTATUS = 1
-    m.i.SPHI = 0.05
-    m.i.SPLO = 0
+    m.i.SPHI = 0.1
+    m.i.SPLO = 0.05
     m.r.FSTATUS = 1
 
     # MODEL OPTIONS
     m.options.CV_TYPE = 1
-    m.options.IMODE = 6
-    m.options.SOLVER = 3
+    m.options.IMODE = 6 # CONTROL
+    m.options.SOLVER = 3 # IPOPT (Interior Point Optimizer)
 
     #   ___     __| |   ___
     #  / _ \   / _` |  / _ \
@@ -81,12 +83,12 @@ def main():
     #  \___/   \__,_|  \___|
 
     # Define initial values for ODE solver
-    s0 = (N-360-250-400)/N  # Susceptible []
-    e0 = 250/N              # Exposed []
-    i0 = 360/N              # Active Infected []
-    isp = 0.1               # Active Infected Setpoint (under 10% of population)
-    r0 = 400/N              # Recovered []
-    beta0 = 0.175
+    s0 = (N-100-50-0)/N  # Susceptible []
+    e0 = 100/N              # Exposed []
+    i0 = 50/N              # Active Infected []
+    isp = 0.15               # Active Infected Setpoint (under 10% of population)
+    r0 = 0/N              # Recovered []
+    beta0 = 0.42
 
     t = numpy.arange(0, tf, dt)
 
@@ -117,7 +119,7 @@ def main():
         i[ind+1] = sol['y'][2][-1]
         r[ind+1] = sol['y'][3][-1]
 
-        if ind%60 == 0:
+        if ind%30 == 0:
             m.e.MEAS = e[ind+1]
             m.i.MEAS = i[ind+1]
             m.solve(disp=True)
