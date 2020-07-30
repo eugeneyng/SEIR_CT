@@ -17,7 +17,6 @@ sigma = 0.2 # Average Incubation Period [days^-1]
 
 N = 3565287 # Total Population of CT [persons]
 cfr = 0.022 # Case Fatality Rate [1.4% (NY) - 3%]
-# R = (beta*sigma)/((mu+gamma)*(mu+sigma)) # Basic Reproduction Number
 
 beds = 8798 # Number of hospital beds available
 icub = 674 # Number of ICU beds available
@@ -46,15 +45,17 @@ def estimate():
     # jhuct['date'] = pandas.to_datetime(jhuct['Last_Update'])
 
     # ODE VARIABLES
-    tf = 30
+    tf = 60
     dt = 1
     tspan = [0, tf]
     teval = numpy.arange(0, tf, dt)
     targs = [tf, dt, tspan, teval]
 
     # (betasearch, esearch, isearch) = search(targs, nytct)
-    (betasearch, esearch, isearch) = (0.42, 100, 50)
-    print(betasearch, esearch, isearch)
+    # (betasearch, esearch, isearch) = (0.42, 100, 50)
+    (betasearch, esearch, isearch) = (0.16, 1650, 950)
+    R = (betasearch*sigma)/((mu+gamma)*(mu+sigma)) # Basic Reproduction Number
+    print(betasearch, esearch, isearch, R)
 
     # INITIAL CONDITIONS
     e0 = esearch/N  # Exposed
@@ -71,6 +72,7 @@ def estimate():
     seir = pandas.DataFrame(data=solution)
     seir['date'] = pandas.date_range(start='3/8/2020', periods=len(seir), freq='D')
     seir.columns = ['susceptible', 'exposed', 'infected', 'recovered', 'beta', 'date']
+    print(seir)
 
     fig = plt.figure()
     plt.xlabel("Date")
@@ -78,8 +80,11 @@ def estimate():
     plt.grid(True)
     # plt.plot(seir['date'], seir['susceptible'], label='Susceptible')
     # plt.plot(seir['date'], seir['exposed'], label='Exposed')
-    plt.plot(seir['date'], seir['infected'], label=r'Proportion of Infected, Simulated with $\beta$=0.42')
+    # plt.plot(seir['date'], seir['infected'], label='Infected')
+    # plt.plot(nytct['date'], nytct['cases']/N, label='Infected, per NYT/JHU')
     # plt.plot(seir['date'], seir['recovered'], label='Recovered')
+
+    plt.plot(seir['date'], seir['infected'], label=r'Proportion of Infected, Simulated with $\beta$=0.16')
     plt.scatter(nytct['date'].head(tf), nytct['cases'].head(tf)/N, label='Proportion of Infected, per NYT/JHU')
     plt.gcf().autofmt_xdate()
     plt.legend()

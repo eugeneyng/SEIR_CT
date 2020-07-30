@@ -14,12 +14,11 @@ gamma = 0.07 # Rate of Removal [days^-1]
 mu = 2.403e-5 # Natural Death Rate (unrelated to disease)
 sigma = 0.2 # Average Incubation Period [days^-1]
 
-N = 3.57e6 # Total Population of CT [persons]
+N = 3565287 # Total Population of CT [persons]
 cfr = 0.022 # Case Fatality Rate [1.4% (NY) - 3%]
-R = (0.175*sigma)/((mu+gamma)*(mu+sigma)) # Basic Reproduction Number
 
-beds = 1739 # Number of hospital beds available
-icub = 100 # Number of ICU beds available
+beds = 8798 # Number of hospital beds available
+icub = 674 # Number of ICU beds available
 
 def main():
     tf = 365
@@ -37,10 +36,10 @@ def main():
 
     # Define variables and initial value for GEKKO Model
     m.beta = m.MV(value=0.42, lb=0, ub=1)
-    m.s = m.SV(value=(N-100-50-0)/N, lb=0, ub=1)
-    m.e = m.CV(value=100/N, lb=0, ub=1)
-    m.i = m.CV(value=50/N, lb=0, ub=1)
-    m.r = m.SV(value=0/N, lb=0, ub=1)
+    m.s = m.SV(value=0.969865, lb=0, ub=1)
+    m.e = m.CV(value=.006550, lb=0, ub=1)
+    m.i = m.CV(value=.010616, lb=0, ub=1)
+    m.r = m.SV(value=.013146, lb=0, ub=1)
 
     m.Equation( m.s.dt() == delta - (m.beta*m.s*m.i) - (mu*m.s) )
     m.Equation( m.e.dt() == (m.beta*m.s*m.i) - (sigma*m.e) - (mu*m.e) )
@@ -51,26 +50,22 @@ def main():
     # https://gekko.readthedocs.io/en/latest/tuning_params.html
     # https://gekko.readthedocs.io/en/latest/global.html
 
-    # MV Tuning
+    # Manipulated Variable
     m.beta.STATUS = 1
     m.beta.FSTATUS = 0
     # m.Tc.DMAX = 0.1
     # m.Tc.DMAXHI = 0.1   # constrain movement up
     # m.Tc.DMAXLO = 0.1 # quick action down
 
-    # CV Tuning
+    # Controlled Variables
     m.s.FSTATUS = 1
-    m.e.STATUS = 1
-    m.e.FSTATUS = 0
-    # TODO: Setpoint can't be changed too quickly.
-    # TODO: Discrete optimization
-    m.e.SPHI = 0.1
-    m.e.SPLO = 0.05
+    m.e.FSTATUS = 1
+    m.r.FSTATUS = 1
+
     m.i.STATUS = 1
     m.i.FSTATUS = 1
     m.i.SPHI = 0.1
-    m.i.SPLO = 0.05
-    m.r.FSTATUS = 1
+    m.i.SPLO = 0
 
     # MODEL OPTIONS
     m.options.CV_TYPE = 1
@@ -82,12 +77,12 @@ def main():
     # | (_) | | (_| | |  __/
     #  \___/   \__,_|  \___|
 
-    # Define initial values for ODE solver
-    s0 = (N-100-50-0)/N  # Susceptible []
-    e0 = 100/N              # Exposed []
-    i0 = 50/N              # Active Infected []
-    isp = 0.15               # Active Infected Setpoint (under 10% of population)
-    r0 = 0/N              # Recovered []
+    # Define initial values for ODE solver (from parameter_estimation.py)
+    s0 = 0.969865   # Susceptible []
+    e0 = 0.006550   # Exposed []
+    i0 = 0.010616   # Active Infected []
+    isp = 0.10      # Active Infected Setpoint (under 10% of population)
+    r0 = 0.013146   # Recovered []
     beta0 = 0.42
 
     t = numpy.arange(0, tf, dt)
@@ -106,6 +101,7 @@ def main():
     # |___/ |_| |_| |_| |_|  \__,_| |_|  \__,_|  \__| |_|  \___/  |_| |_|
 
     plt.ion()
+    plt.grid(True)
     plt.show()
 
     for ind in range(len(t)-1):
@@ -120,20 +116,19 @@ def main():
         r[ind+1] = sol['y'][3][-1]
 
         if ind%30 == 0:
-            m.e.MEAS = e[ind+1]
-            m.i.MEAS = i[ind+1]
+            m.e.MEAS = e[ind]
+            m.i.MEAS = i[ind]
             m.solve(disp=True)
             beta[ind+1] = m.beta.NEWVAL
         else:
             beta[ind+1] = beta[ind]
 
-        print(beta[ind+1])
-
-        plt.cla()
-        plt.plot(t, s, 'g-')
-        plt.plot(t, e, 'b-')
-        plt.plot(t, i, 'r-')
-        plt.plot(t, r, 'k-')
+        # plt.cla()
+        plt.plot(t, s, 'g-', label='Susceptible')
+        plt.plot(t, e, 'b-', label='Exposed')
+        plt.plot(t, i, 'r-', label='Infectious')
+        plt.plot(t, r, 'k-', label='Removed')
+        plt.plot(t, beta, 'm-', label=r'$\beta$')
         plt.pause(0.0001)
 
     plt.ioff()
