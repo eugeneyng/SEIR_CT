@@ -21,8 +21,9 @@ beds = 8798 # Number of hospital beds available
 icub = 674 # Number of ICU beds available
 
 def main():
-    tf = 365
+    tf = 420
     dt = 1
+    control_period = 30
 
     #   __ _    ___  | | __ | | __   ___
     #  / _` |  / _ \ | |/ / | |/ /  / _ \
@@ -101,7 +102,6 @@ def main():
     # |___/ |_| |_| |_| |_|  \__,_| |_|  \__,_|  \__| |_|  \___/  |_| |_|
 
     plt.ion()
-    plt.grid(True)
     plt.show()
 
     for ind in range(len(t)-1):
@@ -115,7 +115,7 @@ def main():
         i[ind+1] = sol['y'][2][-1]
         r[ind+1] = sol['y'][3][-1]
 
-        if ind%30 == 0:
+        if ind%control_period == 0:
             m.e.MEAS = e[ind]
             m.i.MEAS = i[ind]
             m.solve(disp=True)
@@ -123,12 +123,17 @@ def main():
         else:
             beta[ind+1] = beta[ind]
 
-        # plt.cla()
+        plt.cla()
+        plt.xticks(numpy.arange(0, tf, control_period))
+        plt.yticks(numpy.arange(0, 1, 0.05))
+        plt.grid(True)
+        plt.xlabel("Days Since Start of Simulation")
         plt.plot(t, s, 'g-', label='Susceptible')
         plt.plot(t, e, 'b-', label='Exposed')
         plt.plot(t, i, 'r-', label='Infectious')
         plt.plot(t, r, 'k-', label='Removed')
         plt.plot(t, beta, 'm-', label=r'$\beta$')
+        plt.legend()
         plt.pause(0.0001)
 
     plt.ioff()
