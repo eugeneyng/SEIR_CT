@@ -21,9 +21,9 @@ beds = 8798 # Number of hospital beds available
 icub = 674 # Number of ICU beds available
 
 def main():
-    tf = 420
+    tf = 360
     dt = 1
-    control_period = 30
+    control_period = 60
 
     #   __ _    ___  | | __ | | __   ___
     #  / _` |  / _ \ | |/ / | |/ /  / _ \
@@ -36,14 +36,21 @@ def main():
     m.time = numpy.arange(0, tf, dt)
 
     # Define variables and initial value for GEKKO Model
-    m.beta = m.MV(value=0.42, lb=0, ub=1)
+    # m.beta = m.Var(lb=0, ub=1)
+    m.betam = m.MV(value=1, lb=0, ub=10, integer=True)
     m.s = m.SV(value=0.969865, lb=0, ub=1)
     m.e = m.CV(value=.006550, lb=0, ub=1)
     m.i = m.CV(value=.010616, lb=0, ub=1)
     m.r = m.SV(value=.013146, lb=0, ub=1)
 
-    m.Equation( m.s.dt() == delta - (m.beta*m.s*m.i) - (mu*m.s) )
-    m.Equation( m.e.dt() == (m.beta*m.s*m.i) - (sigma*m.e) - (mu*m.e) )
+    m.solver_options = ['minlp_gap_tol 1',\
+                    'minlp_maximum_iterations 1000',\
+                    'minlp_max_iter_with_int_sol 100', \
+                    'minlp_as_nlp 0']
+
+    # m.Equation( m.beta == (m.betam + 0.5) / 10 )
+    m.Equation( m.s.dt() == delta - (( (m.betam + 0.5) / 10 )*m.s*m.i) - (mu*m.s) )
+    m.Equation( m.e.dt() == (( (m.betam + 0.5) / 10 )*m.s*m.i) - (sigma*m.e) - (mu*m.e) )
     m.Equation( m.i.dt() == (sigma*m.e) - (gamma*m.i) - (mu*m.i) )
     m.Equation( m.r.dt() == (gamma*m.i) - (mu*m.r) )
 
@@ -52,11 +59,8 @@ def main():
     # https://gekko.readthedocs.io/en/latest/global.html
 
     # Manipulated Variable
-    m.beta.STATUS = 1
-    m.beta.FSTATUS = 0
-    # m.Tc.DMAX = 0.1
-    # m.Tc.DMAXHI = 0.1   # constrain movement up
-    # m.Tc.DMAXLO = 0.1 # quick action down
+    m.betam.STATUS = 1
+    m.betam.FSTATUS = 0
 
     # Controlled Variables
     m.s.FSTATUS = 1
@@ -65,13 +69,14 @@ def main():
 
     m.i.STATUS = 1
     m.i.FSTATUS = 1
-    m.i.SPHI = 0.1
+    m.i.SPHI = 0.3
     m.i.SPLO = 0
 
     # MODEL OPTIONS
     m.options.CV_TYPE = 1
     m.options.IMODE = 6 # CONTROL
-    m.options.SOLVER = 3 # IPOPT (Interior Point Optimizer)
+    m.options.SOLVER = 1 # APOPT (Advanced Process Optimizer) (Only solver that handles Mixed Integer problems)
+    # m.options.SOLVER = 3 # IPOPT (Interior Point Optimizer)
 
     #   ___     __| |   ___
     #  / _ \   / _` |  / _ \
@@ -82,9 +87,10 @@ def main():
     s0 = 0.969865   # Susceptible []
     e0 = 0.006550   # Exposed []
     i0 = 0.010616   # Active Infected []
-    isp = 0.10      # Active Infected Setpoint (under 10% of population)
+    isp = 0.3      # Active Infected Setpoint (under 10% of population)
     r0 = 0.013146   # Recovered []
-    beta0 = 0.42
+    betam0 = 1
+    beta0 = (betam0 + 0.5)/10
 
     t = numpy.arange(0, tf, dt)
 
@@ -94,6 +100,7 @@ def main():
     i = numpy.ones(len(t)) * i0
     isp = numpy.ones(len(t)) * isp
     r = numpy.ones(len(t)) * r0
+    betam = numpy.ones(len(t)) * betam0
     beta = numpy.ones(len(t)) * beta0
 
     #  ___  (_)  _ __ ___    _   _  | |   __ _  | |_  (_)   ___    _ __
@@ -106,8 +113,10 @@ def main():
 
     for ind in range(len(t)-1):
         print(ind)
+        print(betam[ind])
+        print(beta[ind])
         tsim = [ t[ind], t[ind+1] ]
-        init = [ s[ind], e[ind], i[ind], r[ind], beta[ind] ]
+        init = [ s[ind], e[ind], i[ind], r[ind], betam[ind], beta[ind] ]
         sol = scipy.integrate.solve_ivp(rhs, tsim, init)
 
         s[ind+1] = sol['y'][0][-1]
@@ -119,12 +128,14 @@ def main():
             m.e.MEAS = e[ind]
             m.i.MEAS = i[ind]
             m.solve(disp=True)
-            beta[ind+1] = m.beta.NEWVAL
+            betam[ind+1] = m.betam.NEWVAL
+            beta[ind+1] = (betam[ind+1] + 0.5) / 10
         else:
+            betam[ind+1] = betam[ind]
             beta[ind+1] = beta[ind]
 
         plt.cla()
-        plt.xticks(numpy.arange(0, tf, control_period))
+        plt.xticks(numpy.arange(0, tf, 30))
         plt.yticks(numpy.arange(0, 1, 0.05))
         plt.grid(True)
         plt.xlabel("Days Since Start of Simulation")
@@ -146,16 +157,18 @@ def rhs(dt, init):
     e = init[1]
     i = init[2]
     r = init[3]
-    beta = init[4]
+    betam = init[4]
+    beta = init[5]
 
     # Solve dynamics
     sdot = delta - (beta*s*i) - (mu*s)
     edot = (beta*s*i) - (mu*e) - (sigma*e)
     idot = (sigma*e) - (gamma*i) - (mu*i)
     rdot = (gamma*i) - (mu*r)
+    betamdot = 0
     betadot = 0
 
-    return [sdot, edot, idot, rdot, betadot]
+    return [sdot, edot, idot, rdot, betamdot, betadot]
 
 if __name__ == "__main__":
     main()
