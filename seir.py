@@ -23,7 +23,7 @@ icub = 674 # Number of ICU beds available
 def main():
     tf = 360
     dt = 1
-    control_period = 60
+    control_period = 30
 
     #   __ _    ___  | | __ | | __   ___
     #  / _` |  / _ \ | |/ / | |/ /  / _ \
@@ -36,19 +36,15 @@ def main():
     m.time = numpy.arange(0, tf, dt)
 
     # Define variables and initial value for GEKKO Model
-    # m.beta = m.Var(lb=0, ub=1)
+    # m.beta = m.MV(value=0.15, lb=0, ub=1)
     m.betam = m.MV(value=1, lb=0, ub=10, integer=True)
     m.s = m.SV(value=0.969865, lb=0, ub=1)
     m.e = m.CV(value=.006550, lb=0, ub=1)
     m.i = m.CV(value=.010616, lb=0, ub=1)
     m.r = m.SV(value=.013146, lb=0, ub=1)
 
-    m.solver_options = ['minlp_gap_tol 1',\
-                    'minlp_maximum_iterations 1000',\
-                    'minlp_max_iter_with_int_sol 100', \
-                    'minlp_as_nlp 0']
-
-    # m.Equation( m.beta == (m.betam + 0.5) / 10 )
+    # m.Equation( m.s.dt() == delta - (m.beta*m.s*m.i) - (mu*m.s) )
+    # m.Equation( m.e.dt() == (m.beta*m.s*m.i) - (sigma*m.e) - (mu*m.e) )
     m.Equation( m.s.dt() == delta - (( (m.betam + 0.5) / 10 )*m.s*m.i) - (mu*m.s) )
     m.Equation( m.e.dt() == (( (m.betam + 0.5) / 10 )*m.s*m.i) - (sigma*m.e) - (mu*m.e) )
     m.Equation( m.i.dt() == (sigma*m.e) - (gamma*m.i) - (mu*m.i) )
@@ -59,6 +55,8 @@ def main():
     # https://gekko.readthedocs.io/en/latest/global.html
 
     # Manipulated Variable
+    # m.beta.STATUS = 1
+    # m.beta.FSTATUS = 0
     m.betam.STATUS = 1
     m.betam.FSTATUS = 0
 
@@ -69,14 +67,23 @@ def main():
 
     m.i.STATUS = 1
     m.i.FSTATUS = 1
-    m.i.SPHI = 0.3
-    m.i.SPLO = 0
+    m.i.SPHI = 0.2
+    m.i.SPLO = 0.05
+
+    # m.Obj(m.i)
 
     # MODEL OPTIONS
-    m.options.CV_TYPE = 1
+
     m.options.IMODE = 6 # CONTROL
     m.options.SOLVER = 1 # APOPT (Advanced Process Optimizer) (Only solver that handles Mixed Integer problems)
     # m.options.SOLVER = 3 # IPOPT (Interior Point Optimizer)
+
+    m.solver_options = ['minlp_gap_tol 10',\
+                    'minlp_maximum_iterations 10',\
+                    'minlp_max_iter_with_int_sol 5',\
+                    'minlp_as_nlp 0',\
+                    'minlp_branch_method 1',\
+                    'minlp_integer_tol 0.35']
 
     #   ___     __| |   ___
     #  / _ \   / _` |  / _ \
@@ -87,7 +94,7 @@ def main():
     s0 = 0.969865   # Susceptible []
     e0 = 0.006550   # Exposed []
     i0 = 0.010616   # Active Infected []
-    isp = 0.3      # Active Infected Setpoint (under 10% of population)
+    isp = 0.1      # Active Infected Setpoint (under 10% of population)
     r0 = 0.013146   # Recovered []
     betam0 = 1
     beta0 = (betam0 + 0.5)/10
@@ -128,9 +135,11 @@ def main():
             m.e.MEAS = e[ind]
             m.i.MEAS = i[ind]
             m.solve(disp=True)
+            # beta[ind+1] = m.beta.NEWVAL
             betam[ind+1] = m.betam.NEWVAL
             beta[ind+1] = (betam[ind+1] + 0.5) / 10
         else:
+            # beta[ind+1] = beta[ind]
             betam[ind+1] = betam[ind]
             beta[ind+1] = beta[ind]
 
