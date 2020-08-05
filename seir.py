@@ -39,7 +39,7 @@ def main():
     # m.beta = m.MV(value=0.15, lb=0, ub=1)
     m.betam = m.MV(value=1, lb=0, ub=10, integer=True)
     m.s = m.SV(value=0.969865, lb=0, ub=1)
-    m.e = m.CV(value=.006550, lb=0, ub=1)
+    m.e = m.SV(value=.006550, lb=0, ub=1)
     m.i = m.CV(value=.010616, lb=0, ub=1)
     m.r = m.SV(value=.013146, lb=0, ub=1)
 
@@ -79,8 +79,8 @@ def main():
     # m.options.SOLVER = 3 # IPOPT (Interior Point Optimizer)
 
     m.solver_options = ['minlp_gap_tol 10',\
-                    'minlp_maximum_iterations 10',\
-                    'minlp_max_iter_with_int_sol 5',\
+                    'minlp_maximum_iterations 50',\
+                    'minlp_max_iter_with_int_sol 10',\
                     'minlp_as_nlp 0',\
                     'minlp_branch_method 1',\
                     'minlp_integer_tol 0.35']
@@ -94,7 +94,7 @@ def main():
     s0 = 0.969865   # Susceptible []
     e0 = 0.006550   # Exposed []
     i0 = 0.010616   # Active Infected []
-    isp = 0.1      # Active Infected Setpoint (under 10% of population)
+    isp = 0         # Active Infected Setpoint (under 10% of population)
     r0 = 0.013146   # Recovered []
     betam0 = 1
     beta0 = (betam0 + 0.5)/10
@@ -134,10 +134,14 @@ def main():
         if ind%control_period == 0:
             m.e.MEAS = e[ind]
             m.i.MEAS = i[ind]
-            m.solve(disp=True)
-            # beta[ind+1] = m.beta.NEWVAL
-            betam[ind+1] = m.betam.NEWVAL
-            beta[ind+1] = (betam[ind+1] + 0.5) / 10
+            try:
+                m.solve(disp=True)
+                # beta[ind+1] = m.beta.NEWVAL
+                betam[ind+1] = m.betam.NEWVAL
+                beta[ind+1] = (betam[ind+1] + 0.5) / 10
+            except:
+                betam[ind+1] = 1
+                beta[ind+1] = 0.15
         else:
             # beta[ind+1] = beta[ind]
             betam[ind+1] = betam[ind]
