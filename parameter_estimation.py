@@ -10,25 +10,23 @@ import scipy.integrate
 # pandas.set_option('display.max_columns', None)
 
 # GLOBAL CONSTANTS
-delta = 2.703e-5 # Natural Birth Rate (unrelated to disease)
-gamma = 0.07 # Rate of Removal [days^-1]
-mu = 2.403e-5 # Natural Death Rate (unrelated to disease)
-sigma = 0.2 # Average Incubation Period [days^-1]
-
-N = 3565287 # Total Population of CT [persons]
-cfr = 0.022 # Case Fatality Rate [1.4% (NY) - 3%]
-
-beds = 8798 # Number of hospital beds available
-icub = 674 # Number of ICU beds available
+delta   = 2.703e-5 # Natural Birth Rate (unrelated to disease)
+gamma   = 0.07 # Rate of Removal [days^-1]
+mu      = 2.403e-5 # Natural Death Rate (unrelated to disease)
+sigma   = 0.2 # Average Incubation Period [days^-1]
+N       = 3565287 # Total Population of CT [persons]
+cfr     = 0.022 # Case Fatality Rate [1.4% (NY) - 3%]
+beds    = 8798 # Number of hospital beds available
+icub    = 674 # Number of ICU beds available
 
 def estimate():
 
-    nyt = pandas.read_csv('data/nytimes.csv')
-    nytct = nyt[(nyt.state == "Connecticut")].copy()
-    nytct['date'] = pandas.to_datetime(nytct['date'])
+    nyt     = pandas.read_csv('data/nytimes.csv')
+    nytct   = nyt[(nyt.state == "Connecticut")].copy()
+    nytct['date']       = pandas.to_datetime(nytct['date'])
     nytct['difference'] = nytct['cases'].diff()
     nytct['pct_change'] = nytct['cases'].pct_change()
-    nytct = nytct.reset_index()
+    nytct   = nytct.reset_index()
     nytct.index += 0
 
     # if os.path.isfile('data/jhuct.pkl'):
@@ -45,15 +43,15 @@ def estimate():
     # jhuct['date'] = pandas.to_datetime(jhuct['Last_Update'])
 
     # ODE VARIABLES
-    tf = 60
-    dt = 1
-    tspan = [0, tf]
-    teval = numpy.arange(0, tf, dt)
-    targs = [tf, dt, tspan, teval]
+    tf      = 360
+    dt      = 1
+    tspan   = [0, tf]
+    teval   = numpy.arange(0, tf, dt)
+    targs   = [tf, dt, tspan, teval]
 
-    # (betasearch, esearch, isearch) = search(targs, nytct)
+    (betasearch, esearch, isearch) = search(targs, nytct)
     # (betasearch, esearch, isearch) = (0.42, 100, 50)
-    (betasearch, esearch, isearch) = (0.16, 1650, 950)
+    # (betasearch, esearch, isearch) = (0.16, 1650, 950)
     R = (betasearch*sigma)/((mu+gamma)*(mu+sigma)) # Basic Reproduction Number
     print(betasearch, esearch, isearch, R)
 
@@ -69,24 +67,28 @@ def estimate():
     # SOLVE ODE
     solution = scipy.integrate.solve_ivp(rhs, tspan, init, t_eval=teval)
     solution = numpy.c_[numpy.transpose(solution['y'])]
-    seir = pandas.DataFrame(data=solution)
-    seir['date'] = pandas.date_range(start='3/8/2020', periods=len(seir), freq='D')
-    seir.columns = ['susceptible', 'exposed', 'infected', 'recovered', 'beta', 'date']
+    seir            = pandas.DataFrame(data=solution)
+    seir['date']    = pandas.date_range(start='3/8/2020', periods=len(seir), freq='D')
+    seir.columns    = ['susceptible', 'exposed', 'infected', 'recovered', 'beta', 'date']
+    beta = numpy.ones(tf) * betasearch
     print(seir)
 
     fig = plt.figure()
     plt.xlabel("Date")
-    plt.ylabel("Portion of Population in Compartment")
+    # plt.ylabel("Portion of Population in Compartment")
+    plt.xticks(numpy.arange(0, tf, 30))
+    plt.yticks(numpy.arange(0, 1, 0.05))
     plt.grid(True)
-    # plt.plot(seir['date'], seir['susceptible'], label='Susceptible')
-    # plt.plot(seir['date'], seir['exposed'], label='Exposed')
-    # plt.plot(seir['date'], seir['infected'], label='Infected')
-    # plt.plot(nytct['date'], nytct['cases']/N, label='Infected, per NYT/JHU')
-    # plt.plot(seir['date'], seir['recovered'], label='Recovered')
+    plt.plot(seir['date'], seir['susceptible'], 'g-', label='Susceptible')
+    plt.plot(seir['date'], seir['exposed'], 'b-', label='Exposed')
+    plt.plot(seir['date'], seir['infected'], 'r-', label=r'Infected, $\beta$=0.42')
+    plt.plot(nytct['date'], nytct['cases']/N, label='Actual Infected, per NYT/JHU')
+    plt.plot(seir['date'], seir['recovered'], 'k-', label='Recovered')
+    plt.plot(seir['date'], beta, 'm-', label=r'$\beta$')
 
-    plt.plot(seir['date'], seir['infected'], label=r'Proportion of Infected, Simulated with $\beta$=0.16')
-    plt.scatter(nytct['date'].head(tf), nytct['cases'].head(tf)/N, label='Proportion of Infected, per NYT/JHU')
-    plt.gcf().autofmt_xdate()
+    # plt.plot(seir['date'], seir['infected'], label=r'Proportion of Infected, Simulated with $\beta$=0.16')
+    # plt.scatter(nytct['date'].head(tf), nytct['cases'].head(tf)/N, label='Proportion of Infected, per NYT/JHU')
+    # plt.gcf().autofmt_xdate()
     plt.legend()
     plt.tight_layout()
     plt.show()

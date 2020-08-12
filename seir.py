@@ -1,4 +1,5 @@
 import glob
+import math
 import matplotlib.pyplot as plt
 import numpy
 import os
@@ -21,7 +22,7 @@ icub    = 674 # Number of ICU beds available
 def main():
 
     # Allows me to switch between discrete and continuous beta easily
-    discrete = True
+    discrete = False
 
     # Time to solve
     tf  = 360                       # Final Time
@@ -72,7 +73,7 @@ def main():
     m.e.FSTATUS = 1
     m.i.STATUS  = 1
     m.i.FSTATUS = 1
-    m.i.SPHI    = 0.1
+    m.i.SPHI    = 0.3
     m.i.SPLO    = 0
     m.r.FSTATUS = 1
 
@@ -143,7 +144,7 @@ def main():
                     betam[ind+1] = m.betam.NEWVAL
                     beta[ind+1] = (betam[ind+1] + 0.5) / 10
                 else:
-                    beta[ind+1] = m.beta.NEWVAL
+                    beta[ind+1] = round(m.beta.NEWVAL) + 0.05
             except:
                 betam[ind+1] = 1
                 beta[ind+1] = 0.15
