@@ -6,8 +6,6 @@ import os
 import pandas
 import scipy
 import scipy.integrate
-# pandas.set_option('display.max_rows', None)
-# pandas.set_option('display.max_columns', None)
 
 # GLOBAL CONSTANTS
 delta   = 2.703e-5 # Natural Birth Rate (unrelated to disease)
@@ -29,19 +27,6 @@ def estimate():
     nytct   = nytct.reset_index()
     nytct.index += 0
 
-    # if os.path.isfile('data/jhuct.pkl'):
-    #     # print("Reading saved JHU data")
-    #     jhuct = pandas.read_pickle('data/jhuct.pkl')
-    # else:
-    #     filelist = os.listdir('data/csse')
-    #     filelist.sort()
-    #     jhuct = pandas.DataFrame()
-    #     for file in filelist:
-    #         jhu = pandas.read_csv('data/csse/' + file)
-    #         jhuct = jhuct.append(jhu[(jhu.Province_State == "Connecticut")])
-    #     jhuct.to_pickle('data/jhuct.pkl')
-    # jhuct['date'] = pandas.to_datetime(jhuct['Last_Update'])
-
     # ODE VARIABLES
     tf      = 360
     dt      = 1
@@ -50,19 +35,21 @@ def estimate():
     targs   = [tf, dt, tspan, teval]
 
     (betasearch, esearch, isearch) = search(targs, nytct)
-    # (betasearch, esearch, isearch) = (0.42, 100, 50)
-    # (betasearch, esearch, isearch) = (0.16, 1650, 950)
+    # (betasearch, esearch, isearch) = (0.42, 100, 50) # Results for tf = 30
+    # (betasearch, esearch, isearch) = (0.16, 1650, 950) # Results for tf = 60
+    # (betasearch, esearch, isearch) = (0.11, 950, 1950) # Results for tf = 150
     R = (betasearch*sigma)/((mu+gamma)*(mu+sigma)) # Basic Reproduction Number
     print(betasearch, esearch, isearch, R)
 
     # INITIAL CONDITIONS
     e0 = esearch/N  # Exposed
     i0 = isearch/N  # Active Infected
-    r0 = 0          # Recovered
+    r0 = 0          # Recovered (effectively 0)
     s0 = 1-e0-i0-r0 # Susceptible
 
     # INIT
     init = [s0, e0, i0, r0, betasearch]
+    beta = numpy.ones(tf) * betasearch
 
     # SOLVE ODE
     solution = scipy.integrate.solve_ivp(rhs, tspan, init, t_eval=teval)
@@ -70,23 +57,20 @@ def estimate():
     seir            = pandas.DataFrame(data=solution)
     seir['date']    = pandas.date_range(start='3/8/2020', periods=len(seir), freq='D')
     seir.columns    = ['susceptible', 'exposed', 'infected', 'recovered', 'beta', 'date']
-    beta = numpy.ones(tf) * betasearch
-    print(seir)
 
-    fig = plt.figure()
-    plt.xlabel("Date")
-    # plt.ylabel("Portion of Population in Compartment")
+    plt.xlabel("Days Since Start of Simulation")
+    plt.ylabel("Portion of Population in Compartment")
     plt.xticks(numpy.arange(0, tf, 30))
     plt.yticks(numpy.arange(0, 1, 0.05))
     plt.grid(True)
-    plt.plot(seir['date'], seir['susceptible'], 'g-', label='Susceptible')
-    plt.plot(seir['date'], seir['exposed'], 'b-', label='Exposed')
-    plt.plot(seir['date'], seir['infected'], 'r-', label=r'Infected, $\beta$=0.42')
-    plt.plot(nytct['date'], nytct['cases']/N, label='Actual Infected, per NYT/JHU')
-    plt.plot(seir['date'], seir['recovered'], 'k-', label='Recovered')
-    plt.plot(seir['date'], beta, 'm-', label=r'$\beta$')
+    plt.plot(seir.index, seir['susceptible'], 'g-', label='Susceptible')
+    plt.plot(seir.index, seir['exposed'], 'b-', label='Exposed')
+    plt.plot(seir.index, seir['infected'], 'r-', label=r'Infected, $\beta$=0.16')
+    plt.plot(nytct.index, nytct['cases']/N, label='Actual Infected, per NYT/JHU')
+    plt.plot(seir.index, seir['recovered'], 'k-', label='Recovered')
+    plt.plot(seir.index, beta, 'm-', label=r'$\beta$')
 
-    # plt.plot(seir['date'], seir['infected'], label=r'Proportion of Infected, Simulated with $\beta$=0.16')
+    # plt.plot(seir['date'], seir['infected'], label=r'Proportion of Infected, Simulated with $\beta$=0.11')
     # plt.scatter(nytct['date'].head(tf), nytct['cases'].head(tf)/N, label='Proportion of Infected, per NYT/JHU')
     # plt.gcf().autofmt_xdate()
     plt.legend()
