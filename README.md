@@ -1,11 +1,8 @@
 # SEIR_CT
 
-Modelling and nonlinear control of SARS-CoV-2, COVID-19, the novel coronavirus, "rona."
+Modelling and Nonlinear Optimal Control of the COVID-19 Pandemic in Connecticut
 
-# Assumptions
-* Age, Gender, and Race are not contributing factors
-* Testing is sufficient to capture all cases. Testing does not lag.
-* Implementation of control is instantaneous. There is no time lag between compartments.
+COVID-19 is an infectious disease which has resulted in an ongoing pandemic. This paper attempts to model the spread of the disease in the state of Connecticut, and formulate a nonlinear closed-loop feedback controller to minimize the number of infected. A model is first developed and studied. Difficulties in applying the controller - frequency of policy changes, lagging data, an unpredictable population - are explored. 
 
 # Sources
 
